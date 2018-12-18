@@ -26,6 +26,9 @@ double sinusoid(struct x x)
   return 1e-6 + d * 1e-4;
 }
 
+/** given a point x, return a scaled distance from a sinusoid
+ * return 1e-7 if x is on the sinusoid, o.w. 1e-7 + the scaled distance
+ */
 double gold_sinusoid(struct x x)
 {
   double s = cos(x.x[0] * 8.0 * M_PI) / 4.0 + 1.0 / 2.0;
@@ -45,6 +48,11 @@ int main()
     {1,1},
     {0,1}
   };
+  /** fvs : faces to vertices */
+  /** create two triangles with three vertices each using
+   *  fvs_dat[0:2] define the vertices of first triangle
+   *  fvs_dat[3:5] define the vertices of second triangle
+   *  */
   struct rgraph fvs = rgraph_new_from_dat(2, 3, fvs_dat);
   struct xs xs = xs_new_from_dat(4, x_dat);
   int done = 0;

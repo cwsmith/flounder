@@ -21,12 +21,12 @@ static struct ints mark_fes(struct graph efs, struct ints bfs)
   struct ints ecss = ints_new(efs.nverts);
   ints_zero(ecss);
   struct adj ef = adj_new(efs.max_deg);
-  for (int i = 0; i < efs.nverts; ++i) {
-    graph_get(efs, i, &ef);
+  for (int i = 0; i < efs.nverts; ++i) { // loop over edges
+    graph_get(efs, i, &ef); // get faces bound by edge
     for (int j = 0; j < ef.n; ++j)
-      if (bfs.i[ef.e[j]]) {
-        ecss.i[i] = 1;
-        break;
+      if (bfs.i[ef.e[j]]) { // if face is marked
+        ecss.i[i] = 1;      // then mark the edge for splitting
+        break;              // don't need to check the other face bound by this edge
       }
   }
   adj_free(ef);
@@ -38,32 +38,32 @@ static struct ss compute_split_quals(struct ints ecss, struct rgraph evs,
 {
   struct ss eqs = ss_new(efs.nverts);
   struct adj ef = adj_new(2);
-  for (int i = 0; i < ecss.n; ++i) {
-    if (!ecss.i[i])
+  for (int i = 0; i < ecss.n; ++i) {    // loop over the marked edges
+    if (!ecss.i[i])                     // skip edge if not marked
       continue;
     int ev[2];
-    rgraph_get(evs, i, ev);
+    rgraph_get(evs, i, ev);             // get vertices bounding edge
     struct x ex[2];
-    xs_get(xs, ev, 2, ex);
-    struct x mid = x_avg(ex[0], ex[1]);
-    graph_get(efs, i, &ef);
+    xs_get(xs, ev, 2, ex);              // get coordinates of verts
+    struct x mid = x_avg(ex[0], ex[1]); // get mid point of edge
+    graph_get(efs, i, &ef);             // get faces bound by edge
     double wq = DBL_MAX;
-    for (int j = 0; j < ef.n; ++j) {
+    for (int j = 0; j < ef.n; ++j) {    // loop over bound faces
       int f = ef.e[j];
       int fv[3];
-      rgraph_get(fvs, f, fv);
+      rgraph_get(fvs, f, fv);           // get vertices of face
       struct x fx[3];
       for (int k = 0; k < 2; ++k) {
-        xs_get(xs, fv, 3, fx);
+        xs_get(xs, fv, 3, fx);          // get coordinates of face vertices
         for (int l = 0; l < 3; ++l)
-          if (fv[l] == ev[k])
-            fx[l] = mid;
-        double q = fx_qual(fx);
-        if (q < wq)
-          wq = q;
+          if (fv[l] == ev[k])           // find the marked edge
+            fx[l] = mid;                // change the coordinate of the vertex to the mid point
+        double q = fx_qual(fx);         // measure quality
+        if (q < wq)                     // if this is the smallest quality measured
+          wq = q;                       // store it as 'wq', worst quality
       }
     }
-    eqs.s[i] = wq;
+    eqs.s[i] = wq;                      // associate wq with the edge
   }
   adj_free(ef);
   return eqs;
@@ -86,20 +86,21 @@ static struct ints compute_best_indset(struct ints ecss, struct graph ees,
   int iter;
   for (iter = 0; !done; ++iter) {
     done = 1;
-    ints_from_dat(ewss_old, ewss.i);
-    for (int i = 0; i < ecss.n; ++i) {
+    ints_from_dat(ewss_old, ewss.i);              // copy ewss to ewss_old
+    for (int i = 0; i < ecss.n; ++i) {            // loop over edges that could be split
       if (ewss_old.i[i] != COULD_SPLIT)
         continue;
       double q = eqs.s[i];
-      graph_get(ees, i, &ee);
+      graph_get(ees, i, &ee);                     // get second adj edges via faces
       for (int j = 0; j < ee.n; ++j)
         if (ewss_old.i[ee.e[j]] == WILL_SPLIT)
-          ewss.i[i] = WONT_SPLIT;
-      if (ewss.i[i] != COULD_SPLIT)
-        continue;
+          ewss.i[i] = WONT_SPLIT;                 // if any of adj edge is marked for splitting
+                                                  //  then this edge won't be split
+      if (ewss.i[i] != COULD_SPLIT)               // if the edge was just marked as won't split
+        continue;                                 //  then skip it
       int local_max = 1;
-      for (int j = 0; j < ee.n; ++j) {
-        if (ewss_old.i[ee.e[j]] == WONT_SPLIT)
+      for (int j = 0; j < ee.n; ++j) {            // loop over second adjacent edges and find
+        if (ewss_old.i[ee.e[j]] == WONT_SPLIT)    //  the one with the highest quality to split
           continue;
         assert(ee.e[j] != i);
         double oq = eqs.s[ee.e[j]];
@@ -141,18 +142,18 @@ static struct xs split_edges(struct xs xs,
     struct ints ewss, struct rgraph evs)
 {
   struct ints eos = ints_exscan(ewss);
-  int nse = eos.i[ewss.n];
-  struct xs xs2 = xs_new(xs.n + nse);
+  int nse = eos.i[ewss.n];                  // nse: number of split edges
+  struct xs xs2 = xs_new(xs.n + nse);       // xs2: new coordinates sized to hold old and new verts
   for (int i = 0; i < xs.n; ++i)
     xs2.x[i] = xs.x[i];
-  for (int i = 0; i < ewss.n; ++i)
-    if (ewss.i[i]) {
+  for (int i = 0; i < ewss.n; ++i)          // loop over edges
+    if (ewss.i[i]) {                        // if an edge to split
       int ev[2];
-      rgraph_get(evs, i, ev);
+      rgraph_get(evs, i, ev);               // ev: vertices of edge
       struct x ex[2];
-      xs_get(xs, ev, 2, ex);
-      struct x mid = x_avg(ex[0], ex[1]);
-      xs2.x[xs.n + eos.i[i]] = mid;
+      xs_get(xs, ev, 2, ex);                // ex: coordinates of vertices
+      struct x mid = x_avg(ex[0], ex[1]);   // mid: midpoint between vertices
+      xs2.x[xs.n + eos.i[i]] = mid;         // set the new coordinate
     }
   ints_free(eos);
   return xs2;
@@ -163,10 +164,10 @@ static struct rgraph split_faces(struct rgraph fvs,
     struct graph efs, int nv)
 {
   struct ints fos = ints_exscan(fwss);
-  struct ints eos = ints_exscan(ewss);
-  int nsf = fos.i[fwss.n];
-  struct rgraph fvs2 = rgraph_new(fvs.nverts + nsf, 3);
-  for (int i = 0; i < fwss.n; ++i)
+  struct ints eos = ints_exscan(ewss);                   // eos: number of edges split
+  int nsf = fos.i[fwss.n];                               // nsf: number of faces split
+  struct rgraph fvs2 = rgraph_new(fvs.nverts + nsf, 3);  // fvs2: faces to vertices sized to hold old + new faces
+  for (int i = 0; i < fwss.n; ++i)                       // loop to copy fvs to fvs2
     if (!fwss.i[i]) {
       int fv[3];
       rgraph_get(fvs, i, fv);
@@ -174,23 +175,23 @@ static struct rgraph split_faces(struct rgraph fvs,
     }
   struct adj ef = adj_new_graph(efs);
   for (int i = 0; i < ewss.n; ++i)
-    if (ewss.i[i]) {
+    if (ewss.i[i]) {                                     // if an edge to split
       int ev[2];
-      rgraph_get(evs, i, ev);
-      graph_get(efs, i, &ef);
-      int sv = nv + eos.i[i];
-      for (int j = 0; j < ef.n; ++j) {
-        int f = ef.e[j];
+      rgraph_get(evs, i, ev);                            // ev: vertices of split edge
+      graph_get(efs, i, &ef);                            // ef: faces of split edge
+      int sv = nv + eos.i[i];                            // sv: index to new vertex
+      for (int j = 0; j < ef.n; ++j) {                   // loop over faces of split edge
+        int f = ef.e[j];                                 // f: jth face
         int sf[2];
-        sf[0] = f;
-        sf[1] = fvs.nverts + fos.i[f];
+        sf[0] = f;                                       // sf[0]: id of original face
+        sf[1] = fvs.nverts + fos.i[f];                   // sf[1]: id of the new face
         int fv[3];
         for (int k = 0; k < 2; ++k) {
-          rgraph_get(fvs, f, fv);
-          for (int l = 0; l < 3; ++l)
-            if (fv[l] == ev[k])
-              fv[l] = sv;
-          rgraph_set(fvs2, sf[k], fv);
+          rgraph_get(fvs, f, fv);                        // get vertices of original face
+          for (int l = 0; l < 3; ++l)                    // loop over the three vertices of the face
+            if (fv[l] == ev[k])                          // if the vtx in the original face was bounding a split edge
+              fv[l] = sv;                                // replace the vertex with the new vertex
+          rgraph_set(fvs2, sf[k], fv);                   // write the modified list of face vertices
         }
       }
     }
@@ -203,29 +204,29 @@ static struct rgraph split_faces(struct rgraph fvs,
 void refine(struct rgraph fvs, struct xs xs, struct ss dss,
     struct rgraph* pfvs2, struct xs* pxs2)
 {
-  struct graph vfs = rgraph_invert(fvs);
-  struct graph vvs = graph_rgraph_transit(vfs, fvs);
+  struct graph vfs = rgraph_invert(fvs); // vfs: verts to faces
+  struct graph vvs = graph_rgraph_transit(vfs, fvs); // vvs: verts to verts via faces
   graph_free(vfs);
-  struct rgraph evs = graph_bridge(vvs);
+  struct rgraph evs = graph_bridge(vvs); // evs: edges to vertices
   graph_free(vvs);
-  struct graph ves = rgraph_invert(evs);
-  struct rgraph fes = compute_fes(fvs, ves);
+  struct graph ves = rgraph_invert(evs); // ves: verts to edges
+  struct rgraph fes = compute_fes(fvs, ves); // fes: stores the edges bounding a face in a specific order
   graph_free(ves);
-  struct graph efs = rgraph_invert(fes);
-  struct ss as = compute_areas(xs, fvs);
-  struct ints bfs = ss_gt(as, dss);
+  struct graph efs = rgraph_invert(fes); // efs: edges to faces
+  struct ss as = compute_areas(xs, fvs); // as: area of each triangle
+  struct ints bfs = ss_gt(as, dss); // bfs: mask of which triangles have area greater than the size field
   ss_free(as);
-  struct ints ecss = mark_fes(efs, bfs);
+  struct ints ecss = mark_fes(efs, bfs); // ecss: edges that could be split
   ints_free(bfs);
-  struct ss eqs = compute_split_quals(ecss, evs, efs, fvs, xs);
-  struct graph ees = graph_rgraph_transit(efs, fes);
-  struct ints ewss = compute_best_indset(ecss, ees, eqs);
+  struct ss eqs = compute_split_quals(ecss, evs, efs, fvs, xs); // eqs: edge qualities
+  struct graph ees = graph_rgraph_transit(efs, fes); // ees: edge-to-edge via faces
+  struct ints ewss = compute_best_indset(ecss, ees, eqs); // ewss: edges that will be split
   graph_free(ees);
   ss_free(eqs);
   ints_free(ecss);
-  struct ints fwss = mark_split_faces(ewss, fes);
+  struct ints fwss = mark_split_faces(ewss, fes); // fwss: faces that will be split
   rgraph_free(fes);
-  struct xs xs2 = split_edges(xs, ewss, evs);
+  struct xs xs2 = split_edges(xs, ewss, evs);  // xs2: old coordinates with new midpoints appended
   *pxs2 = xs2;
   struct rgraph fvs2 = split_faces(fvs, fwss, ewss, evs, efs, xs.n);
   *pfvs2 = fvs2;

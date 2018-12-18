@@ -4,10 +4,13 @@
 #include "ints.h"
 #include "adj.h"
 
+/** 
+ * adjacency graph
+ */
 struct rgraph {
-  int nverts;
-  int degree;
-  struct ints adj;
+  int nverts;  /**< number of graph vertices */
+  int degree;  /**< degree of each graph face */
+  struct ints adj; /**< list of vertices for each face */
 };
 
 struct rgraph rgraph_new(int nverts, int degree);
@@ -30,6 +33,14 @@ static inline void rgraph_get(struct rgraph g, int i, int a[])
 }
 
 int rgraph_max_adj(struct rgraph g);
+
+/**
+ * \brief
+ * \parameter nverts (in) number of graph vertices
+ * \parameter degree (in) degree of all vertices
+ * \parameter dat (in) adjacent entities for each vertex
+ *                     length = degree*nverts
+ */
 struct rgraph rgraph_new_from_dat(int nverts, int degree, int const dat[]);
 void rgraph_print(struct rgraph g);
 

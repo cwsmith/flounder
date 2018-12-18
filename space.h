@@ -7,15 +7,18 @@
 
 /* how many different things can we call "x"... */
 
+/** coordinate tuple */
 struct x {
   double x[2];
 };
 
+/** array of coordinate tuples */
 struct xs {
   int n;
   struct x* x;
 };
 
+/** array of floats */
 struct ss {
   int n;
   double* s;
