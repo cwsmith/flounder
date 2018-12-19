@@ -4,6 +4,10 @@
 
 struct graph rgraph_invert(struct rgraph rg)
 {
+  #pragma HLS INTERFACE m_axi port=rg bundle=gmem0 offset=slave
+  #pragma HLS INTERFACE s_axilite port=rg
+  #pragma HLS INTERFACE s_axilite port=return
+
   int nverts = rgraph_max_adj(rg) + 1;
   struct graph_spec s = graph_spec_new(nverts);
   ints_zero(s.deg);
