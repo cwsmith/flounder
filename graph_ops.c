@@ -4,19 +4,22 @@
 
 struct graph rgraph_invert(struct rgraph rg)
 {
-  int nverts = rgraph_max_adj(rg) + 1;
+  int nverts = rgraph_max_adj(rg) + 1;           // get the max number of adjacencies for a single entry
   struct graph_spec s = graph_spec_new(nverts);
   ints_zero(s.deg);
   struct adj a = adj_new_rgraph(rg);
   a.n = rg.degree;
-  for (int i = 0; i < rg.nverts; ++i) {
-    rgraph_get(rg, i, a.e);
-    for (int j = 0; j < a.n; ++j)
-      s.deg.i[a.e[j]]++;
+  // build the count of how many time each adjacency in the rgraph appears
+  //  this count is the basis of the CSR graph offset array
+  for (int i = 0; i < rg.nverts; ++i) {          // loop over the 'parent' rgraph entities
+    rgraph_get(rg, i, a.e);                      // get the 'child' entities adjacent to a parent
+    for (int j = 0; j < a.n; ++j)                // loop over the children
+      s.deg.i[a.e[j]]++;                         // count how many times each child entity appears
   }
-  struct graph g = graph_new(s);
+  struct graph g = graph_new(s);                 // the child->parent graph
   struct ints at = ints_new(nverts);
   ints_from_dat(at, g.off.i);
+  // run the same loop as before and store the parents for each child
   for (int i = 0; i < rg.nverts; ++i) {
     rgraph_get(rg, i, a.e);
     for (int j = 0; j < a.n; ++j) {
