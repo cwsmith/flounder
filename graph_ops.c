@@ -71,33 +71,34 @@ struct graph graph_rgraph_transit(struct graph g, struct rgraph rg)
   return tg;
 }
 
+// this is only called from refine with a vertex-to-vertex via face graph
 struct rgraph graph_bridge(struct graph g)
 {
   int nhe = graph_nedges(g);
   assert(nhe % 2 == 0);
-  int ne = nhe / 2;
-  struct rgraph rg = rgraph_new(ne, 2);
-  struct adj a = adj_new_graph(g);
+  int ne = nhe / 2;                          // each edge appears exactly twice in g
+  struct rgraph rg = rgraph_new(ne, 2);      // the edge-to-vertex rgraph is downward with deg=2
+  struct adj a = adj_new_graph(g);           // a large enough adj struct for any adj of g
   struct ints naes = ints_new(g.nverts);     // naes: number of adjacent ents ?
   for (int i = 0; i < g.nverts; ++i) {
-    graph_get(g, i, &a);
+    graph_get(g, i, &a);                     // vertices adjacent to parent vtx i
     int nae = 0;
-    for (int j = 0; j < a.n; ++j)
-      if (i < a.e[j])
+    for (int j = 0; j < a.n; ++j)            // loop over adjacent verts
+      if (i < a.e[j])                        // count each edge once
         nae++;
     naes.i[i] = nae;
   }
   struct ints os = ints_exscan(naes);
   ints_free(naes);
-  int ra[2];
+  int ra[2];                                 // the two vertices for each edge
   for (int i = 0; i < g.nverts; ++i) {
-    ra[0] = i;
+    ra[0] = i;                               // the parent vtx is the first in the edge
     graph_get(g, i, &a);
-    int k = os.i[i];
+    int k = os.i[i];                         // the edge we are creating in rg
     for (int j = 0; j < a.n; ++j)
-      if (i < a.e[j]) {
-        ra[1] = a.e[j];
-        rgraph_set(rg, k++, ra);
+      if (i < a.e[j]) {                      // count each edge once
+        ra[1] = a.e[j];                      // child vertex is second in the edge
+        rgraph_set(rg, k++, ra);             // write the edge into the rg
       }
   }
   ints_free(os);

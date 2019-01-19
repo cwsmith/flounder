@@ -39,6 +39,7 @@ void graph_print(struct graph g)
   }
 }
 
+// return an adjacency struct that can hold up to the max degree of g
 struct adj adj_new_graph(struct graph g)
 {
   return adj_new(g.max_deg);
