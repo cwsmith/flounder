@@ -1,13 +1,14 @@
 #include "graph_ops.h"
+#include "pl_graph_ops.h"
 #include <stdlib.h>
 #include <stdio.h>
 
 struct graph rgraph_invert(struct rgraph rg)
 {
-  #pragma HLS INTERFACE m_axi port=rg bundle=gmem0 offset=slave
-  #pragma HLS INTERFACE s_axilite port=rg
-  #pragma HLS INTERFACE s_axilite port=return
-
+  int g_nverts, g_max_deg;
+  printf("0.1\n");
+  pl_rgraph_invert(&(rg.nverts), &(rg.degree), &g_nverts, &g_max_deg);
+  printf("0.2\n");
   int nverts = rgraph_max_adj(rg) + 1;
   struct graph_spec s = graph_spec_new(nverts);
   ints_zero(s.deg);
