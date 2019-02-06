@@ -8,11 +8,11 @@ struct graph rgraph_invert(struct rgraph rg)
   int g_nverts, g_max_deg;
   struct ints g_off;
   struct ints g_adj;
-  pl_rgraph_invert(rg.nverts, rg.degree,
-      rg.adj.n, rg.adj.i,
-      g_nverts, g_max_deg,
-      g_off.n, g_off.i,
-      g_adj.n, g_adj.i) {
+  pl_rgraph_invert(&(rg.nverts), &(rg.degree),
+      &(rg.adj.n), rg.adj.i,
+      &g_nverts, &g_max_deg,
+      &(g_off.n), g_off.i,
+      &(g_adj.n), g_adj.i);
   int nverts = rgraph_max_adj(rg) + 1;
   struct graph_spec s = graph_spec_new(nverts);
   ints_zero(s.deg);
